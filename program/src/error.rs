@@ -19,6 +19,16 @@ pub enum AppError {
   IncorrectProgramId,
   #[error("Operation overflowed")]
   Overflow,
+  #[error("Invalid owner")]
+  InvalidOwner,
+  #[error("Invalid LP proof")]
+  InvalidLpProof,
+  #[error("Cannot input a zero amount")]
+  ZeroValue,
+  #[error("The account was initialized already")]
+  AlreadyInitialized,
+  #[error("The provided accounts are unmatched to the pool")]
+  UnmatchedPool,
 }
 
 impl From<AppError> for ProgramError {
@@ -42,6 +52,11 @@ impl PrintProgramError for AppError {
       AppError::InvalidInstruction => msg!("Error: Invalid instruction"),
       AppError::IncorrectProgramId => msg!("Error: Incorrect program id"),
       AppError::Overflow => msg!("Error: Operation overflowed"),
+      AppError::InvalidOwner => msg!("Error: Invalid owner"),
+      AppError::InvalidLpProof => msg!("Error: Invalid LP proof"),
+      AppError::ZeroValue => msg!("Error: Cannot input a zero amount"),
+      AppError::AlreadyInitialized => msg!("The account was initialized already"),
+      AppError::UnmatchedPool => msg!("The provided accounts are unmatched to the pool"),
     }
   }
 }

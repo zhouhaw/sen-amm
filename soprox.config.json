@@ -3,12 +3,12 @@
   "devnet": {
     "nodeUrl": "https://api.devnet.solana.com",
     "payer": {
-      "address": "",
-      "secretKey": ""
+      "address": "5SebzrmKSkumBfAXno6feKTvFYP9jH5DvqnbXpsjXzL",
+      "secretKey": "92467159ad94030f285f90038355c65aa0e6210fa29cfa9f2f9bf9116506eb90012352eb27909cf443078ce3539b69b0e057348fdcddb728041be2ebeb9728c5"
     },
     "program": {
-      "address": "",
-      "secretKey": ""
+      "address": "4erFSLP7oBFSVC1t35jdxmbfxEhYCKfoM6XdG2BLR3UF",
+      "secretKey": "d3224be9172ae9105357afa753768246970ccd6d64dcf0b95345c1f6e76121ec36453c9420071b5bac9f45aba64c2ef3c618b587b341dec9525d7bfe99a88c64"
     }
   },
   "testnet": {
