@@ -3,6 +3,7 @@ use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, msg, 
 
 pub mod add_liquidity;
 pub mod initialize_pool;
+pub mod remove_liquidity;
 
 pub struct Processor {}
 
@@ -22,6 +23,10 @@ impl Processor {
       AppInstruction::AddLiquidity { delta_a, delta_b } => {
         msg!("Calling AddLiquidity function");
         add_liquidity::exec(delta_a, delta_b, program_id, accounts)
+      }
+      AppInstruction::RemoveLiquidity { lpt } => {
+        msg!("Calling RemoveLiquidity function");
+        remove_liquidity::exec(lpt, program_id, accounts)
       }
     }
   }

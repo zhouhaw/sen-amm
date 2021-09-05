@@ -45,6 +45,9 @@ pub fn exec(
   if *proof_acc.key != program_id.xor(&(pool_acc.key.xor(treasurer.key))) {
     return Err(AppError::InvalidLpProof.into());
   }
+  if *mint_a_acc.key == *mint_b_acc.key {
+    return Err(AppError::SameMint.into());
+  }
   if delta_a == 0 || delta_b == 0 {
     return Err(AppError::ZeroValue.into());
   }
@@ -143,8 +146,8 @@ pub fn exec(
     &[],
   )?;
   // Mint LPT
-  let (lp, _, _, _) = oracle::get_liquidity(delta_a, delta_b, 0, 0).ok_or(AppError::Overflow)?;
-  XSPLT::mint_to(lp, mint_lpt_acc, lpt_acc, treasurer, splt_program, seed)?;
+  let (lpt, _, _, _) = oracle::deposit(delta_a, delta_b, 0, 0).ok_or(AppError::Overflow)?;
+  XSPLT::mint_to(lpt, mint_lpt_acc, lpt_acc, treasurer, splt_program, seed)?;
 
   // Initialize pool account
   if !XSystem::check_account(pool_acc)? {

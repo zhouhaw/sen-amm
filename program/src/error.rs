@@ -29,6 +29,8 @@ pub enum AppError {
   AlreadyInitialized,
   #[error("The provided accounts are unmatched to the pool")]
   UnmatchedPool,
+  #[error("Cannot initialize a pool with two same mints")]
+  SameMint,
 }
 
 impl From<AppError> for ProgramError {
@@ -55,8 +57,9 @@ impl PrintProgramError for AppError {
       AppError::InvalidOwner => msg!("Error: Invalid owner"),
       AppError::InvalidLpProof => msg!("Error: Invalid LP proof"),
       AppError::ZeroValue => msg!("Error: Cannot input a zero amount"),
-      AppError::AlreadyInitialized => msg!("The account was initialized already"),
-      AppError::UnmatchedPool => msg!("The provided accounts are unmatched to the pool"),
+      AppError::AlreadyInitialized => msg!("Error: The account was initialized already"),
+      AppError::UnmatchedPool => msg!("Error: The provided accounts are unmatched to the pool"),
+      AppError::SameMint => msg!("Error: Cannot initialize a pool with two same mints"),
     }
   }
 }

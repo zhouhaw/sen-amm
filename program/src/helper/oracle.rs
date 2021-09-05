@@ -19,7 +19,7 @@ pub fn check_liquidity(delta_a: u64, delta_b: u64, reserve_a: u64, reserve_b: u6
   Some(ratio == expected_ratio)
 }
 
-pub fn get_liquidity(
+pub fn deposit(
   delta_a: u64,
   delta_b: u64,
   reserve_a: u64,
@@ -34,4 +34,28 @@ pub fn get_liquidity(
   let new_reserve_a = delta_a.checked_add(reserve_a)?;
   let new_reserve_b = delta_b.checked_add(reserve_b)?;
   Some((delta_liquidity, new_liquidity, new_reserve_a, new_reserve_b))
+}
+
+pub fn withdraw(
+  delta_liquidity: u64,
+  reserve_a: u64,
+  reserve_b: u64,
+) -> Option<(u64, u64, u64, u64, u64)> {
+  let liquidity = (reserve_a as u128).checked_mul(reserve_b as u128)?.sqrt() as u64;
+  let delta_a = (reserve_a as u128)
+    .checked_mul(delta_liquidity as u128)?
+    .checked_div(liquidity as u128)? as u64;
+  let delta_b = (reserve_b as u128)
+    .checked_mul(delta_liquidity as u128)?
+    .checked_div(liquidity as u128)? as u64;
+  let new_liquidity = liquidity.checked_sub(delta_liquidity)?;
+  let new_reserve_a = reserve_a.checked_sub(delta_a)?;
+  let new_reserve_b = reserve_b.checked_sub(delta_b)?;
+  Some((
+    delta_a,
+    delta_b,
+    new_liquidity,
+    new_reserve_a,
+    new_reserve_b,
+  ))
 }

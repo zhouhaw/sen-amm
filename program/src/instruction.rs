@@ -6,6 +6,7 @@ use std::convert::TryInto;
 pub enum AppInstruction {
   InitializePool { delta_a: u64, delta_b: u64 },
   AddLiquidity { delta_a: u64, delta_b: u64 },
+  RemoveLiquidity { lpt: u64 },
 }
 impl AppInstruction {
   pub fn unpack(instruction: &[u8]) -> Result<Self, ProgramError> {
@@ -38,6 +39,14 @@ impl AppInstruction {
           .map(u64::from_le_bytes)
           .ok_or(AppError::InvalidInstruction)?;
         Self::AddLiquidity { delta_a, delta_b }
+      }
+      2 => {
+        let lpt = rest
+          .get(..8)
+          .and_then(|slice| slice.try_into().ok())
+          .map(u64::from_le_bytes)
+          .ok_or(AppError::InvalidInstruction)?;
+        Self::RemoveLiquidity { lpt }
       }
       _ => return Err(AppError::InvalidInstruction.into()),
     })
