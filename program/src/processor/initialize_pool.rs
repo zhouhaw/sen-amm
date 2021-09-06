@@ -22,7 +22,7 @@ pub fn exec(
   let pool_acc = next_account_info(accounts_iter)?;
   let lpt_acc = next_account_info(accounts_iter)?;
   let mint_lpt_acc = next_account_info(accounts_iter)?;
-  let vault_acc = next_account_info(accounts_iter)?;
+  let taxman_acc = next_account_info(accounts_iter)?;
   let proof_acc = next_account_info(accounts_iter)?; // program_id xor treasurer xor pool_id
 
   let src_a_acc = next_account_info(accounts_iter)?;
@@ -169,7 +169,7 @@ pub fn exec(
   pool_data.owner = *owner.key;
   pool_data.state = PoolState::Initialized;
   pool_data.mint_lpt = *mint_lpt_acc.key;
-  pool_data.vault = *vault_acc.key;
+  pool_data.taxman = *taxman_acc.key;
   pool_data.mint_a = *mint_a_acc.key;
   pool_data.treasury_a = *treasury_a_acc.key;
   pool_data.reserve_a = delta_a;

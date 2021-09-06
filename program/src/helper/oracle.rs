@@ -1,6 +1,7 @@
 use crate::helper::math::Roots;
 
 const PRECISION: u64 = 1000000000000000000; // 10^18
+const TAX: u64 = 500000000000000; // 0.5%
 
 pub fn check_liquidity(delta_a: u64, delta_b: u64, reserve_a: u64, reserve_b: u64) -> Option<bool> {
   if delta_a == 0 || delta_b == 0 {
@@ -58,4 +59,37 @@ pub fn withdraw(
     new_reserve_a,
     new_reserve_b,
   ))
+}
+
+pub fn adaptive_fee(ask_amount: u64, alpha: u64) -> Option<(u64, u64)> {
+  let numerator = PRECISION.checked_sub(alpha)?;
+  let denominator = (2 as u64).checked_mul(PRECISION)?.checked_sub(alpha)?;
+  let fee = ask_amount
+    .checked_mul(numerator)?
+    .checked_div(denominator)?;
+  let amount = ask_amount.checked_sub(fee)?;
+  Some((amount, fee))
+}
+
+pub fn tax(ask_amount: u64) -> Option<(u64, u64)> {
+  let tax = ask_amount.checked_mul(TAX)?.checked_div(PRECISION)?;
+  let amount = ask_amount.checked_sub(tax)?;
+  Some((amount, tax))
+}
+
+pub fn swap(bid_amount: u64, reserve_bid: u64, reserve_ask: u64) -> Option<(u64, u64, u64, u64)> {
+  let liquidity = (reserve_bid as u128)
+    .checked_mul(reserve_ask as u128)?
+    .sqrt();
+  let new_reserve_bid = reserve_bid.checked_add(bid_amount)?;
+  let temp_reserve_ask = (liquidity).checked_div(new_reserve_bid as u128)? as u64;
+  let temp_ask_amount = reserve_ask.checked_sub(temp_reserve_ask)?;
+  let alpha = reserve_bid
+    .checked_mul(PRECISION)?
+    .checked_div(new_reserve_bid)?;
+  let (_, fee) = adaptive_fee(temp_ask_amount, alpha)?;
+  let (_, tax) = tax(temp_ask_amount)?;
+  let ask_amount = temp_ask_amount.checked_sub(fee)?.checked_sub(tax)?;
+  let new_reserve_ask = temp_reserve_ask.checked_add(fee)?;
+  Some((ask_amount, tax, new_reserve_bid, new_reserve_ask))
 }

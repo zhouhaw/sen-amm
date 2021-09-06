@@ -31,6 +31,8 @@ pub enum AppError {
   UnmatchedPool,
   #[error("Cannot initialize a pool with two same mints")]
   SameMint,
+  #[error("Exceed limit")]
+  ExceedLimit,
 }
 
 impl From<AppError> for ProgramError {
@@ -59,7 +61,8 @@ impl PrintProgramError for AppError {
       AppError::ZeroValue => msg!("Error: Cannot input a zero amount"),
       AppError::AlreadyInitialized => msg!("Error: The account was initialized already"),
       AppError::UnmatchedPool => msg!("Error: The provided accounts are unmatched to the pool"),
-      AppError::SameMint => msg!("Error: Cannot initialize a pool with two same mints"),
+      AppError::SameMint => msg!("Error: Cannot operate a pool with two same mints"),
+      AppError::ExceedLimit => msg!("Error: Exceed limit"),
     }
   }
 }

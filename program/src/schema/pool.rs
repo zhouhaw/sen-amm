@@ -31,7 +31,7 @@ pub struct Pool {
   pub owner: Pubkey,
   pub state: PoolState,
   pub mint_lpt: Pubkey,
-  pub vault: Pubkey,
+  pub taxman: Pubkey,
 
   pub mint_a: Pubkey,
   pub treasury_a: Pubkey,
@@ -53,14 +53,13 @@ impl Pool {
   // Verify the pair of mint and treasury
   // 0: pool A
   // 1: pool B
-  pub fn get_reserve(&self, treasury: &Pubkey) -> Option<(u8, u64)> {
-    if self.treasury_a == *treasury {
+  pub fn get_reserve(&self, mint: &Pubkey) -> Option<(u8, u64)> {
+    if self.mint_a == *mint {
       return Some((0, self.reserve_a));
     }
-    if self.treasury_b == *treasury {
+    if self.mint_b == *mint {
       return Some((1, self.reserve_b));
     }
-
     None
   }
 }
@@ -93,7 +92,7 @@ impl Pack for Pool {
       owner,
       state,
       mint_lpt,
-      vault,
+      taxman,
       mint_a,
       treasury_a,
       reserve_a,
@@ -105,7 +104,7 @@ impl Pack for Pool {
       owner: Pubkey::new_from_array(*owner),
       state: PoolState::try_from_primitive(state[0]).or(Err(ProgramError::InvalidAccountData))?,
       mint_lpt: Pubkey::new_from_array(*mint_lpt),
-      vault: Pubkey::new_from_array(*vault),
+      taxman: Pubkey::new_from_array(*taxman),
       mint_a: Pubkey::new_from_array(*mint_a),
       treasury_a: Pubkey::new_from_array(*treasury_a),
       reserve_a: u64::from_le_bytes(*reserve_a),
@@ -122,7 +121,7 @@ impl Pack for Pool {
       dst_owner,
       dst_state,
       dst_mint_lpt,
-      dst_vault,
+      dst_taxman,
       dst_mint_a,
       dst_treasury_a,
       dst_reserve_a,
@@ -134,7 +133,7 @@ impl Pack for Pool {
       ref owner,
       state,
       ref mint_lpt,
-      ref vault,
+      ref taxman,
       ref mint_a,
       ref treasury_a,
       reserve_a,
@@ -145,7 +144,7 @@ impl Pack for Pool {
     dst_owner.copy_from_slice(owner.as_ref());
     *dst_state = [state as u8];
     dst_mint_lpt.copy_from_slice(mint_lpt.as_ref());
-    dst_vault.copy_from_slice(vault.as_ref());
+    dst_taxman.copy_from_slice(taxman.as_ref());
     dst_mint_a.copy_from_slice(mint_a.as_ref());
     dst_treasury_a.copy_from_slice(treasury_a.as_ref());
     *dst_reserve_a = reserve_a.to_le_bytes();

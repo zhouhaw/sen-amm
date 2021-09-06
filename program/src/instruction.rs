@@ -7,6 +7,11 @@ pub enum AppInstruction {
   InitializePool { delta_a: u64, delta_b: u64 },
   AddLiquidity { delta_a: u64, delta_b: u64 },
   RemoveLiquidity { lpt: u64 },
+  Swap { amount: u64, limit: u64 },
+  FreezePool,
+  ThawPool,
+  TransferTaxman,
+  TransferOwnership,
 }
 impl AppInstruction {
   pub fn unpack(instruction: &[u8]) -> Result<Self, ProgramError> {
@@ -48,6 +53,23 @@ impl AppInstruction {
           .ok_or(AppError::InvalidInstruction)?;
         Self::RemoveLiquidity { lpt }
       }
+      3 => {
+        let amount = rest
+          .get(..8)
+          .and_then(|slice| slice.try_into().ok())
+          .map(u64::from_le_bytes)
+          .ok_or(AppError::InvalidInstruction)?;
+        let limit = rest
+          .get(8..16)
+          .and_then(|slice| slice.try_into().ok())
+          .map(u64::from_le_bytes)
+          .ok_or(AppError::InvalidInstruction)?;
+        Self::Swap { amount, limit }
+      }
+      4 => Self::FreezePool,
+      5 => Self::ThawPool,
+      6 => Self::TransferTaxman,
+      7 => Self::TransferOwnership,
       _ => return Err(AppError::InvalidInstruction.into()),
     })
   }
