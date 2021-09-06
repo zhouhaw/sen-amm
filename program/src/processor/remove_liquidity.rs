@@ -4,13 +4,18 @@ use crate::interfaces::{xsplata::XSPLATA, xsplt::XSPLT, xsystem::XSystem};
 use crate::schema::pool::Pool;
 use solana_program::{
   account_info::{next_account_info, AccountInfo},
-  entrypoint::ProgramResult,
+  program_error::ProgramError,
   program_pack::{IsInitialized, Pack},
   pubkey::Pubkey,
 };
 use spl_token::state::Account;
+use std::result::Result;
 
-pub fn exec(lpt: u64, program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+pub fn exec(
+  lpt: u64,
+  program_id: &Pubkey,
+  accounts: &[AccountInfo],
+) -> Result<(u64, u64), ProgramError> {
   let accounts_iter = &mut accounts.iter();
   let owner = next_account_info(accounts_iter)?;
   let pool_acc = next_account_info(accounts_iter)?;
@@ -123,5 +128,5 @@ pub fn exec(lpt: u64, program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
   // Update pool
   Pool::pack(pool_data, &mut pool_acc.data.borrow_mut())?;
 
-  Ok(())
+  Ok((delta_a, delta_b))
 }

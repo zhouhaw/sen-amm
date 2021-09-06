@@ -2,12 +2,13 @@ use crate::helper::util;
 use crate::schema::pool::{Pool, PoolState};
 use solana_program::{
   account_info::{next_account_info, AccountInfo},
-  entrypoint::ProgramResult,
+  program_error::ProgramError,
   program_pack::Pack,
   pubkey::Pubkey,
 };
+use std::result::Result;
 
-pub fn exec(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+pub fn exec(program_id: &Pubkey, accounts: &[AccountInfo]) -> Result<(), ProgramError> {
   let accounts_iter = &mut accounts.iter();
   let owner = next_account_info(accounts_iter)?;
   let pool_acc = next_account_info(accounts_iter)?;
