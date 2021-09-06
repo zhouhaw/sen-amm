@@ -1,7 +1,7 @@
 use crate::helper::math::Roots;
 
 const PRECISION: u64 = 1000000000000000000; // 10^18
-const TAX: u64 = 500000000000000; // 0.5%
+const TAX: u64 = 500000000000000; // 0.05%
 
 pub fn check_liquidity(delta_a: u64, delta_b: u64, reserve_a: u64, reserve_b: u64) -> Option<bool> {
   if delta_a == 0 || delta_b == 0 {
