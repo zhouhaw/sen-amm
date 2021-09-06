@@ -4,6 +4,7 @@ use crate::interfaces::{xsplt::XSPLT, xsystem::XSystem};
 use crate::schema::pool::{Pool, PoolState};
 use solana_program::{
   account_info::{next_account_info, AccountInfo},
+  msg,
   program_error::ProgramError,
   program_pack::{IsInitialized, Pack},
   pubkey::Pubkey,
@@ -54,6 +55,7 @@ pub fn exec(
   }
 
   // Deposit token A
+  msg!("Deposit token A");
   util::checked_transfer_splt(
     delta_a,
     payer,
@@ -69,6 +71,7 @@ pub fn exec(
     &[],
   )?;
   // Deposit token B
+  msg!("Deposit token B");
   util::checked_transfer_splt(
     delta_b,
     payer,
@@ -84,6 +87,7 @@ pub fn exec(
     &[],
   )?;
   // Initialize mint LP
+  msg!("Initialize mint LP");
   if !XSystem::check_account(mint_lpt_acc)? {
     XSystem::rent_account(
       Mint::LEN,
@@ -104,6 +108,7 @@ pub fn exec(
     seed,
   )?;
   // Initialize lpt account
+  msg!("Initialize lpt account");
   util::checked_initialize_splt_account(
     payer,
     lpt_acc,
@@ -115,9 +120,11 @@ pub fn exec(
     splata_program,
   )?;
   // Mint lpt
+  msg!("Mint lpt");
   let (lpt, _, _, _) = oracle::deposit(delta_a, delta_b, 0, 0).ok_or(AppError::Overflow)?;
   XSPLT::mint_to(lpt, mint_lpt_acc, lpt_acc, treasurer, splt_program, seed)?;
   // Initialize pool account
+  msg!("Initialize pool account");
   if !XSystem::check_account(pool_acc)? {
     XSystem::rent_account(
       Pool::LEN,
@@ -134,6 +141,7 @@ pub fn exec(
     return Err(AppError::AlreadyInitialized.into());
   }
   // Update pool data
+  msg!("Update pool data");
   pool_data.owner = *owner.key;
   pool_data.state = PoolState::Initialized;
   pool_data.mint_lpt = *mint_lpt_acc.key;

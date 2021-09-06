@@ -6,6 +6,7 @@ use solana_program::{
   entrypoint::ProgramResult,
   program_pack::{IsInitialized, Pack},
   pubkey::{Pubkey, PubkeyError},
+  msg
 };
 use spl_token::state::Account;
 
@@ -20,6 +21,7 @@ pub fn checked_initialize_splt_account<'a>(
   splata_program: &AccountInfo<'a>,
 ) -> ProgramResult {
   // Rent account
+  msg!("Rent account");
   if !XSystem::check_account(target_acc)? {
     XSystem::rent_account(
       Account::LEN,
@@ -31,6 +33,7 @@ pub fn checked_initialize_splt_account<'a>(
     )?;
   }
   // Initialize account
+  msg!("Initialize account");
   let target_data = Account::unpack_unchecked(&target_acc.data.borrow())?;
   if !target_data.is_initialized() {
     XSPLATA::initialize_account(
