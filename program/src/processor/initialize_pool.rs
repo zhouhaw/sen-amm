@@ -1,6 +1,6 @@
 use crate::error::AppError;
 use crate::helper::{oracle, pubutil::Boolean, util};
-use crate::interfaces::{xsplata::XSPLATA, xsplt::XSPLT, xsystem::XSystem};
+use crate::interfaces::{xsplt::XSPLT, xsystem::XSystem};
 use crate::schema::pool::{Pool, PoolState};
 use solana_program::{
   account_info::{next_account_info, AccountInfo},
@@ -8,7 +8,7 @@ use solana_program::{
   program_pack::{IsInitialized, Pack},
   pubkey::Pubkey,
 };
-use spl_token::state::{Account, Mint};
+use spl_token::state::Mint;
 use std::result::Result;
 
 pub fn exec(
@@ -53,18 +53,11 @@ pub fn exec(
     return Err(AppError::ZeroValue.into());
   }
 
-  // Initialize treasury A
-  if !XSystem::check_account(treasury_a_acc)? {
-    XSystem::rent_account(
-      Account::LEN,
-      treasury_a_acc,
-      payer,
-      splt_program.key,
-      sysvar_rent_acc,
-      system_program,
-    )?;
-  }
-  XSPLATA::initialize_account(
+  // Deposit token A
+  util::checked_transfer_splt(
+    delta_a,
+    payer,
+    src_a_acc,
     payer,
     treasury_a_acc,
     treasurer,
@@ -75,21 +68,11 @@ pub fn exec(
     splata_program,
     &[],
   )?;
-  // Deposit token A
-  XSPLT::transfer(delta_a, src_a_acc, treasury_a_acc, payer, splt_program, &[])?;
-
-  // Initialize treasury B
-  if !XSystem::check_account(treasury_b_acc)? {
-    XSystem::rent_account(
-      Account::LEN,
-      treasury_b_acc,
-      payer,
-      splt_program.key,
-      sysvar_rent_acc,
-      system_program,
-    )?;
-  }
-  XSPLATA::initialize_account(
+  // Deposit token B
+  util::checked_transfer_splt(
+    delta_b,
+    payer,
+    src_b_acc,
     payer,
     treasury_b_acc,
     treasurer,
@@ -100,9 +83,6 @@ pub fn exec(
     splata_program,
     &[],
   )?;
-  // Deposit token B
-  XSPLT::transfer(delta_b, src_b_acc, treasury_b_acc, payer, splt_program, &[])?;
-
   // Initialize mint LP
   if !XSystem::check_account(mint_lpt_acc)? {
     XSystem::rent_account(
@@ -123,19 +103,8 @@ pub fn exec(
     splt_program,
     seed,
   )?;
-
   // Initialize lpt account
-  if !XSystem::check_account(lpt_acc)? {
-    XSystem::rent_account(
-      Account::LEN,
-      lpt_acc,
-      payer,
-      splt_program.key,
-      sysvar_rent_acc,
-      system_program,
-    )?;
-  }
-  XSPLATA::initialize_account(
+  util::checked_initialize_splt_account(
     payer,
     lpt_acc,
     payer,
@@ -144,12 +113,10 @@ pub fn exec(
     splt_program,
     sysvar_rent_acc,
     splata_program,
-    &[],
   )?;
-  // Mint LPT
+  // Mint lpt
   let (lpt, _, _, _) = oracle::deposit(delta_a, delta_b, 0, 0).ok_or(AppError::Overflow)?;
   XSPLT::mint_to(lpt, mint_lpt_acc, lpt_acc, treasurer, splt_program, seed)?;
-
   // Initialize pool account
   if !XSystem::check_account(pool_acc)? {
     XSystem::rent_account(

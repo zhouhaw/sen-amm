@@ -1,14 +1,13 @@
 use crate::error::AppError;
 use crate::helper::{oracle, util};
-use crate::interfaces::{xsplata::XSPLATA, xsplt::XSPLT, xsystem::XSystem};
+use crate::interfaces::xsplt::XSPLT;
 use crate::schema::pool::Pool;
 use solana_program::{
   account_info::{next_account_info, AccountInfo},
   program_error::ProgramError,
-  program_pack::{IsInitialized, Pack},
+  program_pack::Pack,
   pubkey::Pubkey,
 };
-use spl_token::state::Account;
 use std::result::Result;
 
 pub fn exec(
@@ -66,30 +65,16 @@ pub fn exec(
   // Update pool
   Pool::pack(pool_data, &mut pool_acc.data.borrow_mut())?;
   // Initialize lpt account
-  if !XSystem::check_account(lpt_acc)? {
-    XSystem::rent_account(
-      Account::LEN,
-      lpt_acc,
-      owner,
-      splt_program.key,
-      sysvar_rent_acc,
-      system_program,
-    )?;
-  }
-  let acc_data = Account::unpack_unchecked(&lpt_acc.data.borrow())?;
-  if !acc_data.is_initialized() {
-    XSPLATA::initialize_account(
-      owner,
-      lpt_acc,
-      owner,
-      mint_lpt_acc,
-      system_program,
-      splt_program,
-      sysvar_rent_acc,
-      splata_program,
-      &[],
-    )?;
-  }
+  util::checked_initialize_splt_account(
+    owner,
+    lpt_acc,
+    owner,
+    mint_lpt_acc,
+    system_program,
+    splt_program,
+    sysvar_rent_acc,
+    splata_program,
+  )?;
   // Mint LPT
   XSPLT::mint_to(lpt, mint_lpt_acc, lpt_acc, treasurer, splt_program, seed)?;
 

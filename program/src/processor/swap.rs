@@ -1,14 +1,13 @@
 use crate::error::AppError;
 use crate::helper::{oracle, util};
-use crate::interfaces::{xsplata::XSPLATA, xsplt::XSPLT, xsystem::XSystem};
+use crate::interfaces::xsplt::XSPLT;
 use crate::schema::pool::Pool;
 use solana_program::{
   account_info::{next_account_info, AccountInfo},
   program_error::ProgramError,
-  program_pack::{IsInitialized, Pack},
+  program_pack::Pack,
   pubkey::Pubkey,
 };
-use spl_token::state::Account;
 use std::result::Result;
 
 pub fn exec(
@@ -80,69 +79,33 @@ pub fn exec(
     _ => return Err(AppError::UnmatchedPool.into()),
   }
   // Pay tax (Initialize ask account if not exsting)
-  if !XSystem::check_account(treasury_taxman_acc)? {
-    XSystem::rent_account(
-      Account::LEN,
-      treasury_taxman_acc,
-      owner,
-      splt_program.key,
-      sysvar_rent_acc,
-      system_program,
-    )?;
-  }
-  let acc_data = Account::unpack_unchecked(&treasury_taxman_acc.data.borrow())?;
-  if !acc_data.is_initialized() {
-    XSPLATA::initialize_account(
-      owner,
-      treasury_taxman_acc,
-      taxman_acc,
-      mint_ask_acc,
-      system_program,
-      splt_program,
-      sysvar_rent_acc,
-      splata_program,
-      &[],
-    )?;
-  }
-  XSPLT::transfer(
+  util::checked_transfer_splt(
     tax,
+    owner,
     treasury_ask_acc,
-    treasury_taxman_acc,
     treasurer,
+    treasury_taxman_acc,
+    taxman_acc,
+    mint_ask_acc,
+    system_program,
     splt_program,
+    sysvar_rent_acc,
+    splata_program,
     seed,
   )?;
   // Execute ask (Initialize ask account if not exsting)
-  if !XSystem::check_account(dst_ask_acc)? {
-    XSystem::rent_account(
-      Account::LEN,
-      dst_ask_acc,
-      owner,
-      splt_program.key,
-      sysvar_rent_acc,
-      system_program,
-    )?;
-  }
-  let acc_data = Account::unpack_unchecked(&dst_ask_acc.data.borrow())?;
-  if !acc_data.is_initialized() {
-    XSPLATA::initialize_account(
-      owner,
-      dst_ask_acc,
-      owner,
-      mint_ask_acc,
-      system_program,
-      splt_program,
-      sysvar_rent_acc,
-      splata_program,
-      &[],
-    )?;
-  }
-  XSPLT::transfer(
+  util::checked_transfer_splt(
     ask_amount,
+    owner,
     treasury_ask_acc,
-    dst_ask_acc,
     treasurer,
+    dst_ask_acc,
+    owner,
+    mint_ask_acc,
+    system_program,
     splt_program,
+    sysvar_rent_acc,
+    splata_program,
     seed,
   )?;
   match ask_code {
