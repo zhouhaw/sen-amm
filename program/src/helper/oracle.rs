@@ -64,29 +64,30 @@ pub fn withdraw(
 pub fn adaptive_fee(ask_amount: u64, alpha: u64) -> Option<(u64, u64)> {
   let numerator = PRECISION.checked_sub(alpha)?;
   let denominator = (2 as u64).checked_mul(PRECISION)?.checked_sub(alpha)?;
-  let fee = ask_amount
-    .checked_mul(numerator)?
-    .checked_div(denominator)?;
+  let fee = (ask_amount as u128)
+    .checked_mul(numerator as u128)?
+    .checked_div(denominator as u128)? as u64;
   let amount = ask_amount.checked_sub(fee)?;
   Some((amount, fee))
 }
 
 pub fn tax(ask_amount: u64) -> Option<(u64, u64)> {
-  let tax = ask_amount.checked_mul(TAX)?.checked_div(PRECISION)?;
+  let tax = (ask_amount as u128)
+    .checked_mul(TAX as u128)?
+    .checked_div(PRECISION as u128)? as u64;
   let amount = ask_amount.checked_sub(tax)?;
   Some((amount, tax))
 }
 
 pub fn swap(bid_amount: u64, reserve_bid: u64, reserve_ask: u64) -> Option<(u64, u64, u64, u64)> {
-  let liquidity = (reserve_bid as u128)
-    .checked_mul(reserve_ask as u128)?
-    .sqrt();
   let new_reserve_bid = reserve_bid.checked_add(bid_amount)?;
-  let temp_reserve_ask = (liquidity).checked_div(new_reserve_bid as u128)? as u64;
+  let temp_reserve_ask = (reserve_bid as u128)
+    .checked_mul(reserve_ask as u128)?
+    .checked_div(new_reserve_bid as u128)? as u64;
   let temp_ask_amount = reserve_ask.checked_sub(temp_reserve_ask)?;
-  let alpha = reserve_bid
-    .checked_mul(PRECISION)?
-    .checked_div(new_reserve_bid)?;
+  let alpha = (reserve_bid as u128)
+    .checked_mul(PRECISION as u128)?
+    .checked_div(new_reserve_bid as u128)? as u64;
   let (_, fee) = adaptive_fee(temp_ask_amount, alpha)?;
   let (_, tax) = tax(temp_ask_amount)?;
   let ask_amount = temp_ask_amount.checked_sub(fee)?.checked_sub(tax)?;
