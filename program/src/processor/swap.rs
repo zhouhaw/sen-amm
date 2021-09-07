@@ -1,5 +1,5 @@
 use crate::error::AppError;
-use crate::helper::{oracle, util};
+use crate::helper::util;
 use crate::interfaces::xsplt::XSPLT;
 use crate::schema::pool::Pool;
 use solana_program::{
@@ -9,6 +9,33 @@ use solana_program::{
   pubkey::Pubkey,
 };
 use std::result::Result;
+
+const PRECISION: u64 = 1000000000000000000; // 10^18
+const TAX: u64 = 500000000000000; // 0.05%
+
+pub fn tax(ask_amount: u64) -> Option<(u64, u64)> {
+  let tax = (ask_amount as u128)
+    .checked_mul(TAX as u128)?
+    .checked_div(PRECISION as u128)? as u64;
+  let amount = ask_amount.checked_sub(tax)?;
+  Some((amount, tax))
+}
+
+pub fn swap(bid_amount: u64, reserve_bid: u64, reserve_ask: u64) -> Option<(u64, u64, u64, u64)> {
+  let new_reserve_bid = reserve_bid.checked_add(bid_amount)?;
+  let alpha = (reserve_bid as u128)
+    .checked_mul(PRECISION as u128)?
+    .checked_div(new_reserve_bid as u128)?;
+  let two_subtracts_alpha = (2 as u128)
+    .checked_mul(PRECISION as u128)?
+    .checked_sub(alpha)?;
+  let new_reserve_ask = (PRECISION as u128)
+    .checked_mul(reserve_ask as u128)?
+    .checked_div(two_subtracts_alpha)? as u64;
+  let temp_ask_amount = reserve_ask.checked_sub(new_reserve_ask)?;
+  let (ask_amount, tax) = tax(temp_ask_amount)?;
+  Some((ask_amount, tax, new_reserve_bid, new_reserve_ask))
+}
 
 pub fn exec(
   amount: u64,
@@ -58,7 +85,7 @@ pub fn exec(
 
   let bid_amount = amount;
   let (ask_amount, tax, new_reserve_bid, new_reserve_ask) =
-    oracle::swap(bid_amount, reserve_bid, reserve_ask).ok_or(AppError::Overflow)?;
+    swap(bid_amount, reserve_bid, reserve_ask).ok_or(AppError::Overflow)?;
 
   if ask_amount < limit {
     return Err(AppError::ExceedLimit.into());

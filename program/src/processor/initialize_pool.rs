@@ -1,5 +1,5 @@
 use crate::error::AppError;
-use crate::helper::{oracle, pubutil::Boolean, util};
+use crate::helper::{math::Roots, pubutil::Boolean, util};
 use crate::interfaces::{xsplt::XSPLT, xsystem::XSystem};
 use crate::schema::pool::{Pool, PoolState};
 use solana_program::{
@@ -10,6 +10,11 @@ use solana_program::{
 };
 use spl_token::state::Mint;
 use std::result::Result;
+
+pub fn lp(delta_a: u64, delta_b: u64) -> Option<u64> {
+  let lpt = (delta_a as u128).checked_mul(delta_b as u128)?.sqrt() as u64;
+  Some(lpt)
+}
 
 pub fn exec(
   delta_a: u64,
@@ -115,7 +120,7 @@ pub fn exec(
     splata_program,
   )?;
   // Mint lpt
-  let (lpt, _, _, _) = oracle::deposit(delta_a, delta_b, 0, 0).ok_or(AppError::Overflow)?;
+  let lpt = lp(delta_a, delta_b).ok_or(AppError::Overflow)?;
   XSPLT::mint_to(lpt, mint_lpt_acc, lpt_acc, treasurer, splt_program, seed)?;
   // Initialize pool account
   if !XSystem::check_account(pool_acc)? {

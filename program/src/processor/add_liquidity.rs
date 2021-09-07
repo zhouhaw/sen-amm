@@ -20,7 +20,7 @@ pub fn rake(a: u64, b: u64, A: u64, B: u64) -> Option<(u64, u64, u64, u64)> {
   if (a as u128).checked_mul(B as u128)? < (b as u128).checked_mul(A as u128)? {
     return None;
   }
-  if A.checked_add(B)? == 0 {
+  if A == 0 && B == 0 {
     return Some((a, b, A, B)); // Empty pool
   }
   let aB = (a as u128).checked_mul(B as u128)?; // a*B
@@ -90,7 +90,7 @@ pub fn exec(
   {
     return Err(AppError::UnmatchedPool.into());
   }
-  if delta_a == 0 || delta_b == 0 {
+  if delta_a == 0 && delta_b == 0 {
     return Err(AppError::ZeroValue.into());
   }
 
@@ -118,9 +118,10 @@ pub fn exec(
   let (lpt, _, reserve_a, reserve_b) =
     deposit(delta_a_star, delta_b_star, reserve_a_star, reserve_b_star)
       .ok_or(AppError::Overflow)?;
-  // Transfer tokens
+  // Deposit token A
   XSPLT::transfer(delta_a, src_a_acc, treasury_a_acc, owner, splt_program, &[])?;
   pool_data.reserve_a = reserve_a;
+  // Deposit token B
   XSPLT::transfer(delta_b, src_b_acc, treasury_b_acc, owner, splt_program, &[])?;
   pool_data.reserve_b = reserve_b;
   // Update pool
