@@ -1,5 +1,8 @@
 use crate::error::AppError;
-use crate::helper::{math::Roots, util};
+use crate::helper::{
+  math::{U128Roots, U64Roots},
+  util,
+};
 use crate::interfaces::xsplt::XSPLT;
 use crate::schema::pool::Pool;
 use solana_program::{
@@ -8,20 +11,25 @@ use solana_program::{
   program_pack::Pack,
   pubkey::Pubkey,
 };
+use spl_token::state::Mint;
 use std::result::Result;
 
 pub fn withdraw(
-  delta_liquidity: u64,
+  lpt: u64,
+  liquidity: u64,
   reserve_a: u64,
   reserve_b: u64,
 ) -> Option<(u64, u64, u64, u64)> {
-  let liquidity = (reserve_a as u128).checked_mul(reserve_b as u128)?.sqrt() as u64;
-  let delta_a = (reserve_a as u128)
-    .checked_mul(delta_liquidity as u128)?
-    .checked_div(liquidity as u128)? as u64;
-  let delta_b = (reserve_b as u128)
-    .checked_mul(delta_liquidity as u128)?
-    .checked_div(liquidity as u128)? as u64;
+  let delta_a = reserve_a
+    .to_u128()?
+    .checked_mul(lpt.to_u128()?)?
+    .checked_div(liquidity.to_u128()?)?
+    .to_u64()?;
+  let delta_b = reserve_b
+    .to_u128()?
+    .checked_mul(lpt.to_u128()?)?
+    .checked_div(liquidity.to_u128()?)?
+    .to_u64()?;
   let new_reserve_a = reserve_a.checked_sub(delta_a)?;
   let new_reserve_b = reserve_b.checked_sub(delta_b)?;
   Some((delta_a, delta_b, new_reserve_a, new_reserve_b))
@@ -70,8 +78,14 @@ pub fn exec(
   }
 
   // Burn lpt
-  let (delta_a, delta_b, reserve_a, reserve_b) =
-    withdraw(lpt, pool_data.reserve_a, pool_data.reserve_b).ok_or(AppError::Overflow)?;
+  let mint_lpt_data = Mint::unpack(&mint_lpt_acc.data.borrow())?;
+  let (delta_a, delta_b, reserve_a, reserve_b) = withdraw(
+    lpt,
+    mint_lpt_data.supply,
+    pool_data.reserve_a,
+    pool_data.reserve_b,
+  )
+  .ok_or(AppError::Overflow)?;
   XSPLT::burn(lpt, lpt_acc, mint_lpt_acc, owner, splt_program, seed)?;
   // Update pool
   pool_data.reserve_a = reserve_a;
