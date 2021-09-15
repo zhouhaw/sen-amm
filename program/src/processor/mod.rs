@@ -60,8 +60,12 @@ impl Processor {
                 msg!("Calling TransferOwnership function");
                 transfer_ownership::exec(program_id, accounts)?;
                 Ok(())
-            } // AppInstruction::Route => code
-              // accounts : pools :: pool (mints)
+            }
+            AppInstruction::Route { amount, limit } => {
+                msg!("Calling route function to swap");
+                route::exec(amount, limit, program_id, accounts);
+                Ok(())
+            }
         }
     }
 }

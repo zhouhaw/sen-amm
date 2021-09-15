@@ -1,18 +1,9 @@
+use crate::processor::swap;
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     program_error::ProgramError,
     pubkey::Pubkey,
 };
-
-use crate::processor::swap;
-use std::borrow::{Borrow, BorrowMut};
-use std::cell::RefCell;
-use std::ops::Deref;
-use std::rc::Rc;
-
-/// COMMON_ACCOUNT_LEN that means the number of accounts shared for the execution of swaps command
-/// such as: owner, system_program, splt_program, sysvar_rent_acc, splata_program
-const COMMON_ACCOUNT_SWAP_LEN: u8 = 5;
 
 pub fn exec(
     amount: u64,
@@ -24,6 +15,7 @@ pub fn exec(
     let mut ask_amount = amount;
 
     let accounts_iter = &mut accounts.iter();
+
     let owner = next_account_info(accounts_iter)?;
     let system_program = next_account_info(accounts_iter)?;
     let splt_program = next_account_info(accounts_iter)?;
@@ -31,7 +23,7 @@ pub fn exec(
     let splata_program = next_account_info(accounts_iter)?;
 
     /// In addition to the shared accounts above, we need 10 more detailed accounts below
-    loop {
+    while accounts_iter.len() != 0 {
         let pool_acc = next_account_info(accounts_iter)?;
 
         let src_bid_acc = next_account_info(accounts_iter)?;
@@ -64,8 +56,7 @@ pub fn exec(
             sysvar_rent_acc.clone(),
             splata_program.clone(),
         ];
-        ask_amount = swap::exec(amount, limit, program_id, &swap_accounts)?;
+        ask_amount = swap::exec(ask_amount, limit, program_id, &swap_accounts)?;
     }
-
-    Ok(ask_amount);
+    Ok(ask_amount)
 }
