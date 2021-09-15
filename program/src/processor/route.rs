@@ -1,3 +1,5 @@
+use crate::error::AppError;
+use crate::helper::util;
 use crate::processor::swap;
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
@@ -11,8 +13,10 @@ pub fn exec(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
 ) -> Result<u64, ProgramError> {
-    let accounts_len = accounts.len();
     let mut ask_amount = amount;
+    if amount == 0 {
+        return Err(AppError::ZeroValue.into());
+    }
 
     let accounts_iter = &mut accounts.iter();
 
@@ -21,6 +25,9 @@ pub fn exec(
     let splt_program = next_account_info(accounts_iter)?;
     let sysvar_rent_acc = next_account_info(accounts_iter)?;
     let splata_program = next_account_info(accounts_iter)?;
+
+    util::is_program(program_id, &[pool_acc])?;
+    util::is_signer(&[owner])?;
 
     /// In addition to the shared accounts above, we need 10 more detailed accounts below
     while accounts_iter.len() != 0 {
