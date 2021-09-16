@@ -63,7 +63,11 @@ pub fn exec(
             sysvar_rent_acc.clone(),
             splata_program.clone(),
         ];
-        ask_amount = swap::exec(ask_amount, limit, program_id, &swap_accounts)?;
+        ask_amount = swap::exec(ask_amount, 0, program_id, &swap_accounts)?;
+    }
+
+    if ask_amount < limit {
+        return Err(AppError::ExceedLimit.into());
     }
     Ok(ask_amount)
 }
