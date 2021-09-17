@@ -26,12 +26,12 @@ pub fn exec(
     let sysvar_rent_acc = next_account_info(accounts_iter)?;
     let splata_program = next_account_info(accounts_iter)?;
 
-    util::is_program(program_id, &[pool_acc])?;
     util::is_signer(&[owner])?;
 
-    /// In addition to the shared accounts above, we need 10 more detailed accounts below
+    // In addition to the shared accounts above, we need 10 more detailed accounts below
     while accounts_iter.len() != 0 {
         let pool_acc = next_account_info(accounts_iter)?;
+        util::is_program(program_id, &[pool_acc])?;
 
         let src_bid_acc = next_account_info(accounts_iter)?;
         let mint_bid_acc = next_account_info(accounts_iter)?;
