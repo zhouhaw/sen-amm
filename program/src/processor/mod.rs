@@ -63,7 +63,7 @@ impl Processor {
             }
             AppInstruction::Route { amount, limit } => {
                 msg!("Calling route function to swap");
-                route::exec(amount, limit, program_id, accounts);
+                route::exec(amount, limit, program_id, accounts)?;
                 Ok(())
             }
         }

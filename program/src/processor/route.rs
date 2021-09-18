@@ -3,6 +3,7 @@ use crate::helper::util;
 use crate::processor::swap;
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
+    msg,
     program_error::ProgramError,
     pubkey::Pubkey,
 };
@@ -29,6 +30,7 @@ pub fn exec(
     util::is_signer(&[owner])?;
 
     // In addition to the shared accounts above, we need 10 more detailed accounts below
+    let mut counter: u8 = 0;
     while accounts_iter.len() != 0 {
         let pool_acc = next_account_info(accounts_iter)?;
         util::is_program(program_id, &[pool_acc])?;
@@ -64,8 +66,9 @@ pub fn exec(
             splata_program.clone(),
         ];
         ask_amount = swap::exec(ask_amount, 0, program_id, &swap_accounts)?;
+        counter += 1;
+        msg!("counter {}, ask_amount {}", counter, ask_amount);
     }
-
     if ask_amount < limit {
         return Err(AppError::ExceedLimit.into());
     }
