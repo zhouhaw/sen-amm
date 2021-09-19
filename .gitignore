@@ -7,3 +7,5 @@
 target
 dist
 store
+.idea
+program/rustfmt.toml

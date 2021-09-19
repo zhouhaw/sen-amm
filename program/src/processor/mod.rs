@@ -5,6 +5,7 @@ pub mod add_liquidity;
 pub mod freeze_pool;
 pub mod initialize_pool;
 pub mod remove_liquidity;
+pub mod route;
 pub mod swap;
 pub mod thaw_pool;
 pub mod transfer_ownership;
@@ -58,6 +59,11 @@ impl Processor {
       AppInstruction::TransferOwnership {} => {
         msg!("Calling TransferOwnership function");
         transfer_ownership::exec(program_id, accounts)?;
+        Ok(())
+      }
+      AppInstruction::Route { amount, limit } => {
+        msg!("Calling Route function");
+        route::exec(amount, limit, program_id, accounts)?;
         Ok(())
       }
     }

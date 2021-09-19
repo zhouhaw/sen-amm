@@ -12,7 +12,9 @@ pub enum AppInstruction {
   ThawPool,
   TransferTaxman,
   TransferOwnership,
+  Route { amount: u64, limit: u64 },
 }
+
 impl AppInstruction {
   pub fn unpack(instruction: &[u8]) -> Result<Self, ProgramError> {
     let (&tag, rest) = instruction
@@ -70,6 +72,19 @@ impl AppInstruction {
       5 => Self::ThawPool,
       6 => Self::TransferTaxman,
       7 => Self::TransferOwnership,
+      8 => {
+        let amount = rest
+          .get(..8)
+          .and_then(|slice| slice.try_into().ok())
+          .map(u64::from_le_bytes)
+          .ok_or(AppError::InvalidInstruction)?;
+        let limit = rest
+          .get(8..16)
+          .and_then(|slice| slice.try_into().ok())
+          .map(u64::from_le_bytes)
+          .ok_or(AppError::InvalidInstruction)?;
+        Self::Route { amount, limit }
+      }
       _ => return Err(AppError::InvalidInstruction.into()),
     })
   }
