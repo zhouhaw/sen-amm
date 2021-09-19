@@ -13,10 +13,8 @@ use solana_program::{
 };
 use std::result::Result;
 
-const PRECISION: u64 = 1000000000000000000;
-// 10^18
-const FEE: u64 = 2500000000000000;
-// 0.25%
+const PRECISION: u64 = 1000000000000000000; // 10^18
+const FEE: u64 = 2500000000000000; // 0.25%
 const TAX: u64 = 500000000000000; // 0.05%
 
 pub fn fee(ask_amount: u64) -> Option<(u64, u64, u64)> {
