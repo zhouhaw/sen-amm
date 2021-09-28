@@ -1,10 +1,8 @@
 use crate::error::AppError;
-use crate::helper::{
-  math::{U128Roots, U64Roots},
-  util,
-};
+use crate::helper::{math::U128Roots, util};
 use crate::interfaces::xsplt::XSPLT;
 use crate::schema::pool::Pool;
+use num_traits::ToPrimitive;
 use solana_program::{
   account_info::{next_account_info, AccountInfo},
   program_error::ProgramError,

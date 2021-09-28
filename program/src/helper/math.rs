@@ -1,11 +1,8 @@
-use std::convert::TryFrom;
-
 ///
 /// Implement square root for u128
 ///
 pub trait U128Roots {
   fn sqrt(self) -> Self;
-  fn to_u64(self) -> Option<u64>;
 }
 
 impl U128Roots for u128 {
@@ -27,13 +24,6 @@ impl U128Roots for u128 {
     }
     end
   }
-
-  ///
-  /// Cast u128 to u64
-  ///
-  fn to_u64(self) -> Option<u64> {
-    u64::try_from(self).ok()
-  }
 }
 
 ///
@@ -41,7 +31,6 @@ impl U128Roots for u128 {
 ///
 pub trait U64Roots {
   fn sqrt(self) -> Self;
-  fn to_u128(self) -> Option<u128>;
 }
 
 impl U64Roots for u64 {
@@ -62,12 +51,5 @@ impl U64Roots for u64 {
       start = self / end;
     }
     end
-  }
-
-  ///
-  /// Cast u64 to u128
-  ///
-  fn to_u128(self) -> Option<u128> {
-    u128::try_from(self).ok()
   }
 }
