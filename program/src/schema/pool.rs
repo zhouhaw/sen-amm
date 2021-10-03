@@ -1,11 +1,5 @@
-use arrayref::{array_mut_ref, array_ref, array_refs, mut_array_refs};
 use num_enum::TryFromPrimitive;
-use solana_program::{
-  msg,
-  program_error::ProgramError,
-  program_pack::{IsInitialized, Pack, Sealed},
-  pubkey::Pubkey,
-};
+use solana_program::{program_error::ProgramError, pubkey::Pubkey};
 
 ///
 /// Pool state
@@ -24,132 +18,33 @@ impl Default for PoolState {
 }
 
 ///
-/// Pool struct
+/// Admin trait
 ///
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct Pool {
-  pub owner: Pubkey,
-  pub state: PoolState,
-  pub mint_lpt: Pubkey,
-  pub taxman: Pubkey,
-
-  pub mint_a: Pubkey,
-  pub treasury_a: Pubkey,
-  pub reserve_a: u64,
-
-  pub mint_b: Pubkey,
-  pub treasury_b: Pubkey,
-  pub reserve_b: u64,
+pub trait Admin {
+  // True if frozen else False
+  fn is_frozen(&self) -> bool;
+  // Terminate if not owner
+  fn is_owner(&self, expected_owner: Pubkey) -> Result<(), ProgramError>;
 }
 
 ///
-/// Pool implementation
+/// Pool trait
 ///
-impl Pool {
-  // Is frozen
-  pub fn is_frozen(&self) -> bool {
-    self.state == PoolState::Frozen
-  }
-  // Verify the pair of mint and treasury
-  // 0: pool A
-  // 1: pool B
-  pub fn get_reserve(&self, mint: &Pubkey) -> Option<(u8, u64)> {
-    if self.mint_a == *mint {
-      return Some((0, self.reserve_a));
-    }
-    if self.mint_b == *mint {
-      return Some((1, self.reserve_b));
-    }
-    None
-  }
-}
-
-///
-/// Sealed trait
-///
-impl Sealed for Pool {}
-
-///
-/// IsInitialized trait
-///
-impl IsInitialized for Pool {
-  fn is_initialized(&self) -> bool {
-    self.state != PoolState::Uninitialized
-  }
-}
-
-///
-/// Pack trait
-///
-impl Pack for Pool {
-  // Fixed length
-  const LEN: usize = 32 + 1 + 32 + 32 + 2 * (32 + 32 + 8);
-  // Unpack data from [u8] to the data struct
-  fn unpack_from_slice(src: &[u8]) -> Result<Self, ProgramError> {
-    msg!("Read pool data");
-    let src = array_ref![src, 0, 241];
-    let (
-      owner,
-      state,
-      mint_lpt,
-      taxman,
-      mint_a,
-      treasury_a,
-      reserve_a,
-      mint_b,
-      treasury_b,
-      reserve_b,
-    ) = array_refs![src, 32, 1, 32, 32, 32, 32, 8, 32, 32, 8];
-    Ok(Pool {
-      owner: Pubkey::new_from_array(*owner),
-      state: PoolState::try_from_primitive(state[0]).or(Err(ProgramError::InvalidAccountData))?,
-      mint_lpt: Pubkey::new_from_array(*mint_lpt),
-      taxman: Pubkey::new_from_array(*taxman),
-      mint_a: Pubkey::new_from_array(*mint_a),
-      treasury_a: Pubkey::new_from_array(*treasury_a),
-      reserve_a: u64::from_le_bytes(*reserve_a),
-      mint_b: Pubkey::new_from_array(*mint_b),
-      treasury_b: Pubkey::new_from_array(*treasury_b),
-      reserve_b: u64::from_le_bytes(*reserve_b),
-    })
-  }
-  // Pack data from the data struct to [u8]
-  fn pack_into_slice(&self, dst: &mut [u8]) {
-    msg!("Write pool data");
-    let dst = array_mut_ref![dst, 0, 241];
-    let (
-      dst_owner,
-      dst_state,
-      dst_mint_lpt,
-      dst_taxman,
-      dst_mint_a,
-      dst_treasury_a,
-      dst_reserve_a,
-      dst_mint_b,
-      dst_treasury_b,
-      dst_reserve_b,
-    ) = mut_array_refs![dst, 32, 1, 32, 32, 32, 32, 8, 32, 32, 8];
-    let &Pool {
-      ref owner,
-      state,
-      ref mint_lpt,
-      ref taxman,
-      ref mint_a,
-      ref treasury_a,
-      reserve_a,
-      ref mint_b,
-      ref treasury_b,
-      reserve_b,
-    } = self;
-    dst_owner.copy_from_slice(owner.as_ref());
-    *dst_state = [state as u8];
-    dst_mint_lpt.copy_from_slice(mint_lpt.as_ref());
-    dst_taxman.copy_from_slice(taxman.as_ref());
-    dst_mint_a.copy_from_slice(mint_a.as_ref());
-    dst_treasury_a.copy_from_slice(treasury_a.as_ref());
-    *dst_reserve_a = reserve_a.to_le_bytes();
-    dst_mint_b.copy_from_slice(mint_b.as_ref());
-    dst_treasury_b.copy_from_slice(treasury_b.as_ref());
-    *dst_reserve_b = reserve_b.to_le_bytes();
-  }
+pub trait Liquidity {
+  // Code (0: pool A, 1: pool B), Reserve
+  fn get_reserve(&self, mint: &Pubkey) -> Option<(u8, u64)>;
+  // Pricing curve
+  fn curve(&self, bid_amount: u64, bid_mint: &Pubkey, ask_mint: &Pubkey)
+    -> Option<(u64, u64, u64)>;
+  // Fee
+  fn fee(&self, ask_amount: u64) -> Option<(u64, u64, u64)>;
+  // Add liquidity
+  fn deposit(
+    &self,
+    delta_a: u64,
+    delta_b: u64,
+    liquidity: u64,
+  ) -> Option<(u64, u64, u64, u64, u64, u64)>;
+  // Remove liquidity
+  fn withdraw(&self, lpt: u64, liquidity: u64) -> Option<(u64, u64, u64, u64, u64, u64)>;
 }

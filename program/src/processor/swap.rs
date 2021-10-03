@@ -1,8 +1,10 @@
 use crate::error::AppError;
 use crate::helper::util;
 use crate::interfaces::xsplt::XSPLT;
-use crate::schema::pool::Pool;
-use num_traits::ToPrimitive;
+use crate::schema::{
+  exotic_pool::ExoticPool,
+  pool::{Admin, Liquidity},
+};
 use solana_program::{
   account_info::{next_account_info, AccountInfo},
   program_error::ProgramError,
@@ -10,38 +12,6 @@ use solana_program::{
   pubkey::Pubkey,
 };
 use std::result::Result;
-
-const PRECISION: u64 = 1000000000000000000; // 10^18
-const FEE: u64 = 2500000000000000; // 0.25%
-const TAX: u64 = 500000000000000; // 0.05%
-
-pub fn fee(ask_amount: u64) -> Option<(u64, u64, u64)> {
-  let fee = ask_amount
-    .to_u128()?
-    .checked_mul(FEE.to_u128()?)?
-    .checked_div(PRECISION.to_u128()?)?
-    .to_u64()?;
-  let tax = ask_amount
-    .to_u128()?
-    .checked_mul(TAX.to_u128()?)?
-    .checked_div(PRECISION.to_u128()?)?
-    .to_u64()?;
-  let amount = ask_amount.checked_sub(fee)?.checked_sub(tax)?;
-  Some((amount, fee, tax))
-}
-
-pub fn swap(bid_amount: u64, reserve_bid: u64, reserve_ask: u64) -> Option<(u64, u64, u64, u64)> {
-  let new_reserve_bid = reserve_bid.checked_add(bid_amount)?;
-  let temp_new_reserve_ask = reserve_bid
-    .to_u128()?
-    .checked_mul(reserve_ask.to_u128()?)?
-    .checked_div(new_reserve_bid.to_u128()?)?
-    .to_u64()?;
-  let temp_ask_amount = reserve_ask.checked_sub(temp_new_reserve_ask)?;
-  let (ask_amount, fee, tax) = fee(temp_ask_amount)?;
-  let new_reserve_ask = temp_new_reserve_ask + fee;
-  Some((ask_amount, tax, new_reserve_bid, new_reserve_ask))
-}
 
 pub fn exec(
   amount: u64,
@@ -73,8 +43,11 @@ pub fn exec(
   util::is_program(program_id, &[pool_acc])?;
   util::is_signer(&[owner])?;
 
-  let mut pool_data = Pool::unpack(&pool_acc.data.borrow())?;
+  let mut pool_data = ExoticPool::unpack(&pool_acc.data.borrow())?;
   let seed: &[&[&[u8]]] = &[&[&util::safe_seed(pool_acc, treasurer, program_id)?[..]]];
+  if pool_data.is_frozen() {
+    return Err(AppError::FrozenPool.into());
+  }
   if *mint_bid_acc.key == *mint_ask_acc.key {
     return Err(AppError::SameMint.into());
   }
@@ -82,16 +55,21 @@ pub fn exec(
     return Err(AppError::ZeroValue.into());
   }
 
-  let (bid_code, reserve_bid) = pool_data
+  let (bid_code, _) = pool_data
     .get_reserve(mint_bid_acc.key)
     .ok_or(AppError::UnmatchedPool)?;
-  let (ask_code, reserve_ask) = pool_data
+  let (ask_code, _) = pool_data
     .get_reserve(mint_ask_acc.key)
     .ok_or(AppError::UnmatchedPool)?;
 
   let bid_amount = amount;
-  let (ask_amount, tax, new_reserve_bid, new_reserve_ask) =
-    swap(bid_amount, reserve_bid, reserve_ask).ok_or(AppError::Overflow)?;
+  let (pre_ask_amount, new_reserve_bid, pre_new_reserve_ask) = pool_data
+    .curve(bid_amount, mint_bid_acc.key, mint_ask_acc.key)
+    .ok_or(AppError::Overflow)?;
+  let (ask_amount, fee, tax) = pool_data.fee(pre_ask_amount).ok_or(AppError::Overflow)?;
+  let new_reserve_ask = pre_new_reserve_ask
+    .checked_add(fee)
+    .ok_or(AppError::Overflow)?;
 
   if ask_amount < limit {
     return Err(AppError::ExceedLimit.into());
@@ -147,6 +125,6 @@ pub fn exec(
     _ => return Err(AppError::UnmatchedPool.into()),
   }
   // Update pool
-  Pool::pack(pool_data, &mut pool_acc.data.borrow_mut())?;
+  ExoticPool::pack(pool_data, &mut pool_acc.data.borrow_mut())?;
   Ok(ask_amount)
 }

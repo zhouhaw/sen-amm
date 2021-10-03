@@ -21,9 +21,14 @@ impl Processor {
   ) -> ProgramResult {
     let instruction = AppInstruction::unpack(instruction_data)?;
     match instruction {
-      AppInstruction::InitializePool { delta_a, delta_b } => {
+      AppInstruction::InitializePool {
+        delta_a,
+        delta_b,
+        fee_ratio,
+        tax_ratio,
+      } => {
         msg!("Calling InitializePool function");
-        initialize_pool::exec(delta_a, delta_b, program_id, accounts)?;
+        initialize_pool::exec(delta_a, delta_b, fee_ratio, tax_ratio, program_id, accounts)?;
         Ok(())
       }
       AppInstruction::AddLiquidity { delta_a, delta_b } => {

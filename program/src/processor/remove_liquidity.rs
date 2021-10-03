@@ -1,8 +1,10 @@
 use crate::error::AppError;
 use crate::helper::util;
 use crate::interfaces::xsplt::XSPLT;
-use crate::schema::pool::Pool;
-use num_traits::ToPrimitive;
+use crate::schema::{
+  exotic_pool::ExoticPool,
+  pool::{Admin, Liquidity},
+};
 use solana_program::{
   account_info::{next_account_info, AccountInfo},
   program_error::ProgramError,
@@ -11,27 +13,6 @@ use solana_program::{
 };
 use spl_token::state::Mint;
 use std::result::Result;
-
-pub fn withdraw(
-  lpt: u64,
-  liquidity: u64,
-  reserve_a: u64,
-  reserve_b: u64,
-) -> Option<(u64, u64, u64, u64)> {
-  let delta_a = reserve_a
-    .to_u128()?
-    .checked_mul(lpt.to_u128()?)?
-    .checked_div(liquidity.to_u128()?)?
-    .to_u64()?;
-  let delta_b = reserve_b
-    .to_u128()?
-    .checked_mul(lpt.to_u128()?)?
-    .checked_div(liquidity.to_u128()?)?
-    .to_u64()?;
-  let new_reserve_a = reserve_a.checked_sub(delta_a)?;
-  let new_reserve_b = reserve_b.checked_sub(delta_b)?;
-  Some((delta_a, delta_b, new_reserve_a, new_reserve_b))
-}
 
 pub fn exec(
   lpt: u64,
@@ -61,8 +42,11 @@ pub fn exec(
   util::is_program(program_id, &[pool_acc])?;
   util::is_signer(&[owner])?;
 
-  let mut pool_data = Pool::unpack(&pool_acc.data.borrow())?;
+  let mut pool_data = ExoticPool::unpack(&pool_acc.data.borrow())?;
   let seed: &[&[&[u8]]] = &[&[&util::safe_seed(pool_acc, treasurer, program_id)?[..]]];
+  if pool_data.is_frozen() {
+    return Err(AppError::FrozenPool.into());
+  }
   if pool_data.mint_lpt != *mint_lpt_acc.key
     || pool_data.mint_a != *mint_a_acc.key
     || pool_data.mint_b != *mint_b_acc.key
@@ -77,18 +61,14 @@ pub fn exec(
 
   // Burn lpt
   let mint_lpt_data = Mint::unpack(&mint_lpt_acc.data.borrow())?;
-  let (delta_a, delta_b, reserve_a, reserve_b) = withdraw(
-    lpt,
-    mint_lpt_data.supply,
-    pool_data.reserve_a,
-    pool_data.reserve_b,
-  )
-  .ok_or(AppError::Overflow)?;
+  let (delta_a, delta_b, _, reserve_a, reserve_b, _) = pool_data
+    .withdraw(lpt, mint_lpt_data.supply)
+    .ok_or(AppError::Overflow)?;
   XSPLT::burn(lpt, lpt_acc, mint_lpt_acc, owner, splt_program, seed)?;
   // Update pool
   pool_data.reserve_a = reserve_a;
   pool_data.reserve_b = reserve_b;
-  Pool::pack(pool_data, &mut pool_acc.data.borrow_mut())?;
+  ExoticPool::pack(pool_data, &mut pool_acc.data.borrow_mut())?;
   // Withdraw A
   util::checked_transfer_splt(
     delta_a,

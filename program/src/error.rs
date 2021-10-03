@@ -33,6 +33,8 @@ pub enum AppError {
   SameMint,
   #[error("Exceed limit")]
   ExceedLimit,
+  #[error("Frozen pool")]
+  FrozenPool,
 }
 
 impl From<AppError> for ProgramError {
@@ -63,6 +65,7 @@ impl PrintProgramError for AppError {
       AppError::UnmatchedPool => msg!("Error: The provided accounts are unmatched to the pool"),
       AppError::SameMint => msg!("Error: Cannot operate a pool with two same mints"),
       AppError::ExceedLimit => msg!("Error: Exceed limit"),
+      AppError::FrozenPool => msg!("Error: Frozen pool"),
     }
   }
 }

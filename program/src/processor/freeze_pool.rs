@@ -1,5 +1,8 @@
 use crate::helper::util;
-use crate::schema::pool::{Pool, PoolState};
+use crate::schema::{
+  exotic_pool::ExoticPool,
+  pool::{Admin, PoolState},
+};
 use solana_program::{
   account_info::{next_account_info, AccountInfo},
   program_error::ProgramError,
@@ -15,11 +18,11 @@ pub fn exec(program_id: &Pubkey, accounts: &[AccountInfo]) -> Result<(), Program
 
   util::is_program(program_id, &[pool_acc])?;
   util::is_signer(&[owner])?;
-  util::is_pool_owner(owner, pool_acc)?;
 
-  let mut pool_data = Pool::unpack(&pool_acc.data.borrow())?;
+  let mut pool_data = ExoticPool::unpack(&pool_acc.data.borrow())?;
+  pool_data.is_owner(*owner.key)?;
   pool_data.state = PoolState::Frozen;
-  Pool::pack(pool_data, &mut pool_acc.data.borrow_mut())?;
+  ExoticPool::pack(pool_data, &mut pool_acc.data.borrow_mut())?;
 
   Ok(())
 }

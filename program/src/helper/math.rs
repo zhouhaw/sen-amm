@@ -1,4 +1,9 @@
 ///
+/// Calculation presition
+///
+pub const PRECISION: u64 = 1000000000000000000; // 10^18
+
+///
 /// Implement square root for u128
 ///
 pub trait U128Roots {
