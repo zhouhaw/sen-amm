@@ -4,15 +4,35 @@ use std::convert::TryInto;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum AppInstruction {
-  InitializePool { delta_a: u64, delta_b: u64 },
-  AddLiquidity { delta_a: u64, delta_b: u64 },
-  RemoveLiquidity { lpt: u64 },
-  Swap { amount: u64, limit: u64 },
+  InitializePool {
+    delta_a: u64,
+    delta_b: u64,
+    fee_ratio: u64,
+    tax_ratio: u64,
+  },
+  AddLiquidity {
+    delta_a: u64,
+    delta_b: u64,
+  },
+  RemoveLiquidity {
+    lpt: u64,
+  },
+  Swap {
+    amount: u64,
+    limit: u64,
+  },
   FreezePool,
   ThawPool,
   TransferTaxman,
   TransferOwnership,
-  Route { amount: u64, limit: u64 },
+  Route {
+    amount: u64,
+    limit: u64,
+  },
+  UpdateFee {
+    fee_ratio: u64,
+    tax_ratio: u64,
+  },
 }
 
 impl AppInstruction {
@@ -32,7 +52,22 @@ impl AppInstruction {
           .and_then(|slice| slice.try_into().ok())
           .map(u64::from_le_bytes)
           .ok_or(AppError::InvalidInstruction)?;
-        Self::InitializePool { delta_a, delta_b }
+        let fee_ratio = rest
+          .get(16..24)
+          .and_then(|slice| slice.try_into().ok())
+          .map(u64::from_le_bytes)
+          .ok_or(AppError::InvalidInstruction)?;
+        let tax_ratio = rest
+          .get(24..32)
+          .and_then(|slice| slice.try_into().ok())
+          .map(u64::from_le_bytes)
+          .ok_or(AppError::InvalidInstruction)?;
+        Self::InitializePool {
+          delta_a,
+          delta_b,
+          fee_ratio,
+          tax_ratio,
+        }
       }
       1 => {
         let delta_a = rest
@@ -84,6 +119,22 @@ impl AppInstruction {
           .map(u64::from_le_bytes)
           .ok_or(AppError::InvalidInstruction)?;
         Self::Route { amount, limit }
+      }
+      9 => {
+        let fee_ratio = rest
+          .get(..8)
+          .and_then(|slice| slice.try_into().ok())
+          .map(u64::from_le_bytes)
+          .ok_or(AppError::InvalidInstruction)?;
+        let tax_ratio = rest
+          .get(8..16)
+          .and_then(|slice| slice.try_into().ok())
+          .map(u64::from_le_bytes)
+          .ok_or(AppError::InvalidInstruction)?;
+        Self::UpdateFee {
+          fee_ratio,
+          tax_ratio,
+        }
       }
       _ => return Err(AppError::InvalidInstruction.into()),
     })

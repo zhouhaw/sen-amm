@@ -1,6 +1,5 @@
 use crate::error::AppError;
 use crate::interfaces::{xsplata::XSPLATA, xsplt::XSPLT, xsystem::XSystem};
-use crate::schema::pool::Pool;
 use solana_program::{
   account_info::AccountInfo,
   entrypoint::ProgramResult,
@@ -91,14 +90,6 @@ pub fn is_signer(accounts: &[&AccountInfo]) -> ProgramResult {
     if !acc.is_signer {
       return Err(AppError::InvalidOwner.into());
     }
-  }
-  Ok(())
-}
-
-pub fn is_pool_owner(owner: &AccountInfo, pool_acc: &AccountInfo) -> ProgramResult {
-  let pool_data = Pool::unpack(&pool_acc.data.borrow())?;
-  if pool_data.owner != *owner.key {
-    return Err(AppError::InvalidOwner.into());
   }
   Ok(())
 }

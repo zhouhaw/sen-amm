@@ -1,7 +1,10 @@
 use crate::error::AppError;
 use crate::helper::util;
 use crate::interfaces::xsplt::XSPLT;
-use crate::schema::pool::Pool;
+use crate::schema::{
+  pool::Pool,
+  pool_trait::{Exchange, Operation},
+};
 use num_traits::ToPrimitive;
 use solana_program::{
   account_info::{next_account_info, AccountInfo},
@@ -63,6 +66,9 @@ pub fn exec(
 
   let mut pool_data = Pool::unpack(&pool_acc.data.borrow())?;
   let seed: &[&[&[u8]]] = &[&[&util::safe_seed(pool_acc, treasurer, program_id)?[..]]];
+  if pool_data.is_frozen() {
+    return Err(AppError::FrozenPool.into());
+  }
   if pool_data.mint_lpt != *mint_lpt_acc.key
     || pool_data.mint_a != *mint_a_acc.key
     || pool_data.mint_b != *mint_b_acc.key
@@ -77,13 +83,9 @@ pub fn exec(
 
   // Burn lpt
   let mint_lpt_data = Mint::unpack(&mint_lpt_acc.data.borrow())?;
-  let (delta_a, delta_b, reserve_a, reserve_b) = withdraw(
-    lpt,
-    mint_lpt_data.supply,
-    pool_data.reserve_a,
-    pool_data.reserve_b,
-  )
-  .ok_or(AppError::Overflow)?;
+  let (delta_a, delta_b, _, reserve_a, reserve_b, _) = pool_data
+    .withdraw(lpt, mint_lpt_data.supply)
+    .ok_or(AppError::Overflow)?;
   XSPLT::burn(lpt, lpt_acc, mint_lpt_acc, owner, splt_program, seed)?;
   // Update pool
   pool_data.reserve_a = reserve_a;

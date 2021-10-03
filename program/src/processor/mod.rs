@@ -10,6 +10,7 @@ pub mod swap;
 pub mod thaw_pool;
 pub mod transfer_ownership;
 pub mod transfer_taxman;
+pub mod update_fee;
 
 pub struct Processor {}
 
@@ -21,9 +22,14 @@ impl Processor {
   ) -> ProgramResult {
     let instruction = AppInstruction::unpack(instruction_data)?;
     match instruction {
-      AppInstruction::InitializePool { delta_a, delta_b } => {
+      AppInstruction::InitializePool {
+        delta_a,
+        delta_b,
+        fee_ratio,
+        tax_ratio,
+      } => {
         msg!("Calling InitializePool function");
-        initialize_pool::exec(delta_a, delta_b, program_id, accounts)?;
+        initialize_pool::exec(delta_a, delta_b, fee_ratio, tax_ratio, program_id, accounts)?;
         Ok(())
       }
       AppInstruction::AddLiquidity { delta_a, delta_b } => {
@@ -64,6 +70,14 @@ impl Processor {
       AppInstruction::Route { amount, limit } => {
         msg!("Calling Route function");
         route::exec(amount, limit, program_id, accounts)?;
+        Ok(())
+      }
+      AppInstruction::UpdateFee {
+        fee_ratio,
+        tax_ratio,
+      } => {
+        msg!("Calling UpdateFee function");
+        update_fee::exec(fee_ratio, tax_ratio, program_id, accounts)?;
         Ok(())
       }
     }

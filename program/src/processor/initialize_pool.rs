@@ -1,7 +1,7 @@
 use crate::error::AppError;
 use crate::helper::{math::U128Roots, pubutil::Boolean, util};
 use crate::interfaces::{xsplt::XSPLT, xsystem::XSystem};
-use crate::schema::pool::{Pool, PoolState};
+use crate::schema::{pool::Pool, pool_state::PoolState};
 use num_traits::ToPrimitive;
 use solana_program::{
   account_info::{next_account_info, AccountInfo},
@@ -23,6 +23,8 @@ pub fn liquidity(delta_a: u64, delta_b: u64) -> Option<u64> {
 pub fn exec(
   delta_a: u64,
   delta_b: u64,
+  fee_ratio: u64,
+  tax_ratio: u64,
   program_id: &Pubkey,
   accounts: &[AccountInfo],
 ) -> Result<u64, ProgramError> {
@@ -153,6 +155,8 @@ pub fn exec(
   pool_data.mint_b = *mint_b_acc.key;
   pool_data.treasury_b = *treasury_b_acc.key;
   pool_data.reserve_b = delta_b;
+  pool_data.fee_ratio = fee_ratio;
+  pool_data.tax_ratio = tax_ratio;
   Pool::pack(pool_data, &mut pool_acc.data.borrow_mut())?;
 
   Ok(lpt)
