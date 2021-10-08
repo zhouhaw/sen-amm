@@ -33,6 +33,10 @@ pub enum AppInstruction {
     fee_ratio: u64,
     tax_ratio: u64,
   },
+  AddSidedLiquidity {
+    delta_a: u64,
+    delta_b: u64,
+  },
 }
 
 impl AppInstruction {
@@ -135,6 +139,19 @@ impl AppInstruction {
           fee_ratio,
           tax_ratio,
         }
+      }
+      10 => {
+        let delta_a = rest
+          .get(..8)
+          .and_then(|slice| slice.try_into().ok())
+          .map(u64::from_le_bytes)
+          .ok_or(AppError::InvalidInstruction)?;
+        let delta_b = rest
+          .get(8..16)
+          .and_then(|slice| slice.try_into().ok())
+          .map(u64::from_le_bytes)
+          .ok_or(AppError::InvalidInstruction)?;
+        Self::AddSidedLiquidity { delta_a, delta_b }
       }
       _ => return Err(AppError::InvalidInstruction.into()),
     })

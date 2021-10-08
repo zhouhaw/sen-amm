@@ -19,7 +19,7 @@ pub fn exec(
   delta_b: u64,
   program_id: &Pubkey,
   accounts: &[AccountInfo],
-) -> Result<u64, ProgramError> {
+) -> Result<(u64, u64, u64), ProgramError> {
   let accounts_iter = &mut accounts.iter();
   let owner = next_account_info(accounts_iter)?;
   let pool_acc = next_account_info(accounts_iter)?;
@@ -65,6 +65,8 @@ pub fn exec(
   let (a_star, b_star, lpt, reserve_a, reserve_b, _) = pool_data
     .deposit(delta_a, delta_b, mint_lpt_data.supply)
     .ok_or(AppError::Overflow)?;
+  let a_remainer = delta_a.checked_sub(a_star).ok_or(AppError::Overflow)?;
+  let b_remainer = delta_b.checked_sub(b_star).ok_or(AppError::Overflow)?;
   // Deposit token A
   XSPLT::transfer(a_star, src_a_acc, treasury_a_acc, owner, splt_program, &[])?;
   pool_data.reserve_a = reserve_a;
@@ -87,5 +89,5 @@ pub fn exec(
   // Mint LPT
   XSPLT::mint_to(lpt, mint_lpt_acc, lpt_acc, treasurer, splt_program, seed)?;
 
-  Ok(lpt)
+  Ok((lpt, a_remainer, b_remainer))
 }

@@ -19,9 +19,12 @@ use solana_program::{
 /// Just take the correct ratio of tokens
 /// Return the rest
 ///
-pub fn rake(a: u64, b: u64, reserve_a: u64, reserve_b: u64) -> Option<(u64, u64)> {
-  if a == 0 || b == 0 || reserve_a == 0 || reserve_b == 0 {
+pub fn extract(a: u64, b: u64, reserve_a: u64, reserve_b: u64) -> Option<(u64, u64)> {
+  if reserve_a == 0 || reserve_b == 0 {
     return None;
+  }
+  if a == 0 || b == 0 {
+    return Some((0, 0));
   }
   let l = a.to_u128()?.checked_mul(reserve_b.to_u128()?)?;
   let r = b.to_u128()?.checked_mul(reserve_a.to_u128()?)?;
@@ -144,7 +147,7 @@ impl Exchange for Pool {
       return Some((delta_a, delta_b, lpt, delta_a, delta_b, lpt));
     }
     // The pool of non-empty reserves
-    let (a, b) = rake(delta_a, delta_b, self.reserve_a, self.reserve_b)?;
+    let (a, b) = extract(delta_a, delta_b, self.reserve_a, self.reserve_b)?;
     let new_reserve_a = a.checked_add(self.reserve_a)?;
     let new_reserve_b = b.checked_add(self.reserve_b)?;
     let lpt = a

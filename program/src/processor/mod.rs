@@ -2,6 +2,7 @@ use crate::instruction::AppInstruction;
 use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, msg, pubkey::Pubkey};
 
 pub mod add_liquidity;
+pub mod add_sided_liquidity;
 pub mod freeze_pool;
 pub mod initialize_pool;
 pub mod remove_liquidity;
@@ -78,6 +79,11 @@ impl Processor {
       } => {
         msg!("Calling UpdateFee function");
         update_fee::exec(fee_ratio, tax_ratio, program_id, accounts)?;
+        Ok(())
+      }
+      AppInstruction::AddSidedLiquidity { delta_a, delta_b } => {
+        msg!("Calling AddSidedLiquidity function");
+        add_sided_liquidity::exec(delta_a, delta_b, program_id, accounts)?;
         Ok(())
       }
     }
